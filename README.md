@@ -4,7 +4,7 @@ This repository contains Python scripts implementing five peak detection algorit
 
 ## Author
 
-This implementation was created by [yanvgf](https://github.com/yanvgf) while an intern at LITC, UFMG.
+This implementation was created by [yanvgf](https://github.com/yanvgf) while an intern at the Computational Intelligence Laboratory from the Federal University of Minas Gerais (LITC-UFMG).
 
 ## License
 
