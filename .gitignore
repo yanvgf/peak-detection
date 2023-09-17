@@ -1,1 +1,6 @@
-arquivos/*
+files/age_weighting_model_squared_error.csv
+files/sunspots_yearly.dat
+files/without_age_weighting_model_squared_error.csv
+__pycache__
+.gitignore
+peak-detection-ihm-data.ipynb
