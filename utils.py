@@ -201,3 +201,48 @@ def s5_metric(data, k, method='parametric', n_std=3):
             s5_spikiness.append(stds_from_mean)
 
     return(pd.DataFrame(s5_outliers), pd.DataFrame(s5_spikiness))
+
+def delete_adjacent_peaks(peak_indexes, data, k):
+    """Deletes adjacent peaks if the distance between them is less than the size of the window k.
+    
+    Input:
+        peak_indexes (pd.DataFrame): pd.DataFrame containing a list of peak indexes
+        data (pd.DataFrame): pd.DataFrame containing the time series
+        k (int): size of the window
+    
+    Output:
+        corrected_peak_indexes (pd.DataFrame): pd.DataFrame containing the list of peak indexes without adjacent peaks
+    """
+    
+    corrected_peak_indexes = peak_indexes.values.flatten()
+
+    # Initial conditions
+    idx = 0
+    corrected_peak_length = corrected_peak_indexes.shape[0]
+    min_diff = np.min(np.diff(corrected_peak_indexes, 1))
+
+    # While the minimum difference between peaks is less than the size of the window, delete one of the adjacent peaks
+    while min_diff < k:
+        
+        while idx < corrected_peak_length-1:
+
+            current_peak = corrected_peak_indexes[idx]
+            next_peak = corrected_peak_indexes[idx+1]
+            
+            if next_peak - current_peak < k: 
+                
+                smaller_peak_idx = np.argmin([data.values[current_peak], data.values[next_peak]])
+                
+                # Deletes the smaller peak
+                corrected_peak_indexes = np.delete(corrected_peak_indexes, idx+smaller_peak_idx)
+            
+            corrected_peak_length = corrected_peak_indexes.shape[0]
+            
+            idx+=1
+        
+        # Reset the initial conditions
+        idx = 0
+        corrected_peak_length = corrected_peak_indexes.shape[0]
+        min_diff = np.min(np.diff(corrected_peak_indexes, 1))
+
+    return pd.DataFrame(corrected_peak_indexes)
