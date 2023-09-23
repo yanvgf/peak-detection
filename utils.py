@@ -40,14 +40,16 @@ def s2_metric(data, k):
         s2 (pd.DataFrame): series with the values of the S2 metric for each point
     """
     
-    s2 = np.zeros(data.shape[0])
+    data = data.to_numpy()
     
+    s2 = np.zeros(data.shape[0])
+   
     # For each sample in data, calculates the difference between its value and its k neighbors to the right and left
     for idx in range(data.shape[0]):
-        mean_right = np.mean([data.iloc[idx,:].values[0] - data.iloc[idx+k_i+1,:].values[0]
+        mean_right = np.mean([(data[idx] - data[idx+k_i+1])[0]
                             if idx+k_i+1 < data.shape[0] else 0
                             for k_i in range(k)])
-        mean_left = np.mean([data.iloc[idx,:].values[0] - data.iloc[idx-(k_i+1),:].values[0] 
+        mean_left = np.mean([(data[idx] - data[idx-(k_i+1)])[0]
                             if idx-(k_i+1) >= 0 else 0
                             for k_i in range(k)])
         s2[idx] = (mean_right + mean_left)/2
