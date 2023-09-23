@@ -281,6 +281,8 @@ def delete_adjacent_peaks(peak_indexes, data, k):
         corrected_peak_indexes (pd.DataFrame): pd.DataFrame containing the list of peak indexes without adjacent peaks
     """
     
+    data = data.to_numpy()
+    
     corrected_peak_indexes = peak_indexes.values.flatten()
 
     # Initial conditions
@@ -298,7 +300,7 @@ def delete_adjacent_peaks(peak_indexes, data, k):
             
             if next_peak - current_peak < k: 
                 
-                smaller_peak_idx = np.argmin([data.values[current_peak], data.values[next_peak]])
+                smaller_peak_idx = np.argmin([data[current_peak, 0], data[next_peak, 0]])
                 
                 # Deletes the smaller peak
                 corrected_peak_indexes = np.delete(corrected_peak_indexes, idx+smaller_peak_idx)
