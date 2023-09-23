@@ -77,45 +77,96 @@ def s3_metric(data, k):
         
     return pd.DataFrame(s3)
 
-def get_entropy(data, kde_estimator):
+
+def silverman_radius(data):
+    """Calculates the bandwidth of the KDE using the Silverman's rule of thumb
+
+    Input:
+        data (pd.DataFrame): dataframe with the data to be classified as peak or not\n
+        
+    Output:
+        bandwidth (float): bandwidth of the KDE
+    """
+    
+    data = data.values.flatten()
+    
+    data_std = np.std(data)
+    N = data.shape[0]
+    
+    # Silverman rule of thumb
+    bandwidth = 1.06*data_std*N**(-1/5)
+    
+    return bandwidth
+    
+def gaussian_kernel(x):
+    """Gaussian kernel
+
+    Input:
+        x (float): point to be evaluated in the kernel
+
+    Output:
+        gaussian (float): kernel value for the point x
+    """
+
+    gaussian = (1/np.sqrt(2*np.pi))*np.exp(-x**2/2)
+    return gaussian
+
+def get_kde(data, sample_index, w):    
+    """Estimates the probability density of the input data using the Parzen window
+    
+    Input:
+        data (pd.DataFrame): dataframe with the data to be estimated the probability function
+        sample_index (int): index of the sample to be estimated the probability density
+        w (int): parameter for calculating the KDE bandwidth
+    
+    Output:
+        density_estimation (float): estimation of the probability density of the input data
+    """
+    
+    data = data.values.flatten()
+
+    kernel_estimator = gaussian_kernel
+
+    # Estimates the probability density using the Parzen window
+    #
+    M = data.shape[0]
+    # Parzen window length
+    h = np.sqrt(((data[sample_index] - data[sample_index+w])**2 + w**2))
+    normalizing_factor = 1/(M*h)  
+    kernel_factor = np.sum(kernel_estimator((data[sample_index] - data[:-w])/h))  
+    density_estimation = normalizing_factor*kernel_factor  
+
+    return density_estimation
+
+def get_entropy(window, w):
     """Calculates the Shannon entropy of the input data
     
     Input:
-        data (pd.DataFrame): dataframe with the data to be calculated the entropy\n
-        kde_estimator (sklearn.neighbors.KernelDensity): sklearn density estimator\n
-    
+        window (pd.DataFrame): dataframe with the data to calculate the entropy
+        w (int): parameter for calculating the KDE bandwidth
+        
     Output:
         entropy (float): Shannon entropy value
-    """
+    """    
 
-    # Adjust estimator to data
-    kde_estimator.fit(data.values)
+    entropy = -np.sum([get_kde(window, sample_index, w)*np.log2(get_kde(window, sample_index, w)) for sample_index in np.arange(0, window.shape[0]-w, 1)])
 
-    # Method score_samples returns the log of the probability density of the data
-    log_dens = kde_estimator.score_samples(data.values)
-    
-    # Entropy involves estimating the probability density of the data
-    entropy = -np.sum([ np.exp(log_dens) * log_dens ])
-    
     return entropy
 
-def s4_metric(data, k, bandwidth, kde_kernel='gaussian'):
+
+def s4_metric(data, k, w):
     """S4 metric from the article (entropy difference in a window before and after adding a sample)
     
     Input:
         data (pd.DataFrame): dataframe with the data to be classified as peak or not\n
         k (int): number of neighbors to be considered (in the article, it is suggested to use a value with meaning, ex.: samples referring to 1 day)\n
-        bandwidth (int): width of the probability density estimation window\n
-        kd_kernel (str, default='gaussian'): kernel to be used in KDE (gaussian, epanechnikov)\n
-    
+        w (int): parameter used to calculate the bandwidth\n    
+        
     Output:
         s4 (pd.DataFrame): series with the values of the S4 metric for each point
     """
     
     s4 = []
-    
-    # Create a KernelDensity instance
-    kde_estimator = KernelDensity(bandwidth=bandwidth, kernel=kde_kernel)
     
     for idx in range(data.shape[0]):
         
@@ -124,19 +175,20 @@ def s4_metric(data, k, bandwidth, kde_kernel='gaussian'):
         if left_window_index < 0:
             left_window_index = 0
         #
-        right_window_index = idx+k+1
+        right_window_index = idx+k+1+w
         if right_window_index > data.shape[0]:
             right_window_index = data.shape[0]
         
         # Calculates the entropy without the sample in the window
-        entropy_before = get_entropy(pd.concat([data.iloc[left_window_index:idx,:], data.iloc[idx+1:right_window_index,:]]), kde_estimator)
+        entropy_before = get_entropy(pd.concat([data.iloc[left_window_index:idx,:], data.iloc[idx+1:right_window_index,:]]), w)
         
         # Calculates the entropy with the sample in the window
-        entropy_after = get_entropy(data.iloc[left_window_index:right_window_index,:], kde_estimator)
+        entropy_after = entropy_before + get_entropy(data.iloc[idx:idx+1+w,:], w)
         
         s4.append(entropy_before - entropy_after)
     
     return(pd.DataFrame(s4))
+
 
 def parametric_outlier_detection(data, sample, n_std=3):
     """Gets the probability of a point being an outlier in a normal distribution
