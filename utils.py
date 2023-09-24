@@ -71,7 +71,16 @@ def s3_metric(data, k):
     
     s3 = np.zeros(data.shape[0])
     
-    # For each sample in data, calculates the difference between its value and its k neighbors to the right and left    
+    # # For each sample in data, calculates the difference between its value and its k neighbors to the right and left
+    # for idx in range(data.shape[0]):
+    #     diff_right = data.iloc[idx,:].values[0] - np.mean([data.iloc[idx+k_i+1,:].values[0]
+    #                                                     if idx+k_i+1 < data.shape[0] else 0
+    #                                                     for k_i in range(k)])
+    #     diff_left = data.iloc[idx,:].values[0] - np.mean([data.iloc[idx-(k_i+1),:].values[0] 
+    #                                                     if idx-(k_i+1) >= 0 else 0
+    #                                                     for k_i in range(k)])
+    #     s3[idx] = (diff_right + diff_left)/2
+        
     for idx in range(data.shape[0]):
         diff_right = data[idx] - np.mean([data[idx+k_i+1][0]
                                         if idx+k_i+1 < data.shape[0] else 0
@@ -272,8 +281,6 @@ def delete_adjacent_peaks(peak_indexes, data, k):
         corrected_peak_indexes (pd.DataFrame): pd.DataFrame containing the list of peak indexes without adjacent peaks
     """
     
-    data = data.to_numpy()
-    
     corrected_peak_indexes = peak_indexes.values.flatten()
 
     # Initial conditions
@@ -291,7 +298,7 @@ def delete_adjacent_peaks(peak_indexes, data, k):
             
             if next_peak - current_peak < k: 
                 
-                smaller_peak_idx = np.argmin([data[current_peak, 0], data[next_peak, 0]])
+                smaller_peak_idx = np.argmin([data.values[current_peak], data.values[next_peak]])
                 
                 # Deletes the smaller peak
                 corrected_peak_indexes = np.delete(corrected_peak_indexes, idx+smaller_peak_idx)
